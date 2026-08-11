@@ -1,0 +1,39 @@
+{
+  "name": "personal-ops-hub",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm --filter @hub/web build",
+    "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "pnpm --filter @hub/db generate",
+    "db:migrate": "pnpm --filter @hub/db migrate",
+    "dev:web": "pnpm --filter @hub/web dev",
+    "dev:worker": "pnpm --filter @hub/worker dev"
+  },
+  "devDependencies": {
+    "@hub/brief": "workspace:*",
+    "@hub/config": "workspace:*",
+    "@hub/connectors": "workspace:*",
+    "@hub/crypto": "workspace:*",
+    "@hub/db": "workspace:*",
+    "@hub/extraction": "workspace:*",
+    "@hub/jobs": "workspace:*",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.23.12",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  }
+}
