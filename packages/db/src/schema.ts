@@ -36,6 +36,17 @@ export const accounts = pgTable(
     encryptedTokens: text('encrypted_tokens').notNull(),
     scopes: text('scopes').array().notNull(),
     status: text('status').notNull().default('active'),
+    /**
+     * Which brief this mailbox feeds. Each audience gets its own brief; a
+     * mailbox's mail never appears in another audience's brief.
+     */
+    audience: text('audience').notNull().default('jason'),
+    /**
+     * Addresses that count as "the owner" OF THIS MAILBOX, for the is-from-owner
+     * and owner-in-To prefilter rules. Per-account rather than global: in
+     * Moet's mailbox, Moet is the owner, not Jason.
+     */
+    ownerEmails: text('owner_emails').array().notNull().default(sql`'{}'`),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('accounts_provider_external_id_key').on(t.provider, t.externalId)],
@@ -89,16 +100,22 @@ export const events = pgTable(
   ],
 );
 
-export const briefs = pgTable('briefs', {
-  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
-  briefDate: date('brief_date').notNull().unique(),
-  markdown: text('markdown').notNull(),
-  eventIds: uuid('event_ids').array().notNull(),
-  model: text('model').notNull(),
-  inputTokens: integer('input_tokens'),
-  outputTokens: integer('output_tokens'),
-  generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const briefs = pgTable(
+  'briefs',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    briefDate: date('brief_date').notNull(),
+    /** One brief per audience per day — Jason and Moet each get their own. */
+    audience: text('audience').notNull().default('jason'),
+    markdown: text('markdown').notNull(),
+    eventIds: uuid('event_ids').array().notNull(),
+    model: text('model').notNull(),
+    inputTokens: integer('input_tokens'),
+    outputTokens: integer('output_tokens'),
+    generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('briefs_date_audience_key').on(t.briefDate, t.audience)],
+);
 
 export type AccountRow = typeof accounts.$inferSelect;
 export type NewAccountRow = typeof accounts.$inferInsert;

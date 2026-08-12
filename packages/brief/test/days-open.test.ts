@@ -7,7 +7,14 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDb, upsertEvents, type Db, type NewEventRow } from '@hub/db';
+import {
+  audiencesWithBriefOn,
+  createDb,
+  upsertAccount,
+  upsertEvents,
+  type Db,
+  type NewEventRow,
+} from '@hub/db';
 import { threadWaits } from '../src/days-open';
 import { generateBrief } from '../src/generate';
 import type { MessagesCreateClient } from '../src/synthesize';
@@ -21,9 +28,34 @@ const hasDb = Boolean(TEST_DATABASE_URL);
 const NOW = new Date();
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000);
 
+// Events join to accounts so the brief can be scoped to one audience.
+let ACCOUNT_ID: string;
+let MOET_ACCOUNT_ID: string;
+
+async function seedAccounts(db: Db) {
+  const jason = await upsertAccount(db, {
+    provider: 'outlook',
+    externalId: 'jason-mailbox',
+    email: 'jason@traxtone.com',
+    encryptedTokens: 'v1.x.y.z.w',
+    scopes: [],
+    audience: 'jason',
+  });
+  const moet = await upsertAccount(db, {
+    provider: 'outlook',
+    externalId: 'moet-mailbox',
+    email: 'moet@traxtone.com',
+    encryptedTokens: 'v1.x.y.z.w',
+    scopes: [],
+    audience: 'moet',
+  });
+  ACCOUNT_ID = jason.id;
+  MOET_ACCOUNT_ID = moet.id;
+}
+
 function msg(over: Partial<NewEventRow> & { externalId: string }): NewEventRow {
   return {
-    accountId: null,
+    accountId: ACCOUNT_ID,
     source: 'outlook',
     type: 'email',
     threadId: 'thread-1',
@@ -70,6 +102,7 @@ describe.skipIf(!hasDb)('days-open SQL (§7.4)', () => {
   afterAll(async () => end());
   beforeEach(async () => {
     await db.execute(sql`TRUNCATE TABLE events, sync_state, briefs, accounts CASCADE`);
+    await seedAccounts(db);
   });
 
   it('counts days from the oldest unanswered inbound message', async () => {
@@ -143,6 +176,7 @@ describe.skipIf(!hasDb)('generateBrief end to end', () => {
   afterAll(async () => end());
   beforeEach(async () => {
     await db.execute(sql`TRUNCATE TABLE events, sync_state, briefs, accounts CASCADE`);
+    await seedAccounts(db);
   });
 
   function client(text: string) {
@@ -172,6 +206,7 @@ describe.skipIf(!hasDb)('generateBrief end to end', () => {
     const c = client('## Needs you today\n- **2269.2 GVR Local Stone** — FOB clarification pending (2 days open).');
     const result = await generateBrief(db, {
       briefDate: '2026-08-11',
+      audience: 'jason',
       from: daysAgo(7),
       to: new Date(NOW.getTime() + 1000),
       client: c,
@@ -200,6 +235,7 @@ describe.skipIf(!hasDb)('generateBrief end to end', () => {
 
     const result = await generateBrief(db, {
       briefDate: '2026-08-11',
+      audience: 'jason',
       from: daysAgo(7),
       to: new Date(NOW.getTime() + 1000),
       client: client('## Everything else\n- one thing'),
@@ -212,6 +248,7 @@ describe.skipIf(!hasDb)('generateBrief end to end', () => {
     const c = client('should not be used');
     const result = await generateBrief(db, {
       briefDate: '2026-08-11',
+      audience: 'jason',
       from: daysAgo(7),
       to: NOW,
       client: c,
@@ -229,7 +266,12 @@ describe.skipIf(!hasDb)('generateBrief end to end', () => {
       sql`UPDATE events SET extracted = ${JSON.stringify(EXTRACTION)}::jsonb`,
     );
 
-    const opts = { briefDate: '2026-08-11', from: daysAgo(7), to: new Date(NOW.getTime() + 1000) };
+    const opts = {
+      briefDate: '2026-08-11',
+      audience: 'jason',
+      from: daysAgo(7),
+      to: new Date(NOW.getTime() + 1000),
+    };
     await generateBrief(db, { ...opts, client: client('first version') });
     const second = await generateBrief(db, { ...opts, client: client('second version') });
 
@@ -246,6 +288,7 @@ describe.skipIf(!hasDb)('generateBrief end to end', () => {
 
     const result = await generateBrief(db, {
       briefDate: '2026-08-11',
+      audience: 'jason',
       from: daysAgo(7),
       to: new Date(NOW.getTime() + 1000),
       client: client('You have 14 unread emails and 3 meetings today.'),
@@ -254,6 +297,101 @@ describe.skipIf(!hasDb)('generateBrief end to end', () => {
     expect(result.lintWarnings).toContain('counts unread mail');
     // Still persisted — a bad brief is a prompt problem, not a pipeline failure.
     expect(result.brief.markdown).toContain('14 unread');
+  });
+
+  it("builds each audience's brief only from that audience's mailboxes", async () => {
+    await upsertEvents(db, [
+      msg({ externalId: 'jasons', occurredAt: daysAgo(1) }),
+      msg({
+        externalId: 'moets',
+        accountId: MOET_ACCOUNT_ID,
+        threadId: 'thread-moet',
+        occurredAt: daysAgo(1),
+      }),
+    ]);
+    await db.execute(sql`UPDATE events SET extracted = ${JSON.stringify(EXTRACTION)}::jsonb`);
+
+    const opts = { briefDate: '2026-08-11', from: daysAgo(7), to: new Date(NOW.getTime() + 1000) };
+    const jason = await generateBrief(db, {
+      ...opts,
+      audience: 'jason',
+      client: client("jason's brief"),
+    });
+    const moet = await generateBrief(db, {
+      ...opts,
+      audience: 'moet',
+      client: client("moet's brief"),
+    });
+
+    // One event each — neither person's mail leaks into the other's brief.
+    expect(jason.itemCount).toBe(1);
+    expect(moet.itemCount).toBe(1);
+    expect(jason.brief.eventIds).not.toEqual(moet.brief.eventIds);
+    expect(jason.brief.audience).toBe('jason');
+    expect(moet.brief.audience).toBe('moet');
+  });
+
+  it('stores both audiences for the same date without colliding', async () => {
+    await upsertEvents(db, [msg({ externalId: 'a', occurredAt: daysAgo(1) })]);
+    await db.execute(sql`UPDATE events SET extracted = ${JSON.stringify(EXTRACTION)}::jsonb`);
+
+    const opts = { briefDate: '2026-08-11', from: daysAgo(7), to: new Date(NOW.getTime() + 1000) };
+    await generateBrief(db, { ...opts, audience: 'jason', client: client('j') });
+    await generateBrief(db, { ...opts, audience: 'moet', client: client('m') });
+
+    const count = (await db.execute<{ n: string }>(
+      sql`select count(*)::text as n from briefs where brief_date = '2026-08-11'`,
+    )) as unknown as Array<{ n: string }>;
+    // The old schema had brief_date UNIQUE, which allowed only one of these.
+    expect(Number(count[0]!.n)).toBe(2);
+  });
+
+  it('exposes only audience keys for a date, never other briefs\' text', async () => {
+    await upsertEvents(db, [
+      msg({ externalId: 'a', occurredAt: daysAgo(1) }),
+      msg({
+        externalId: 'b',
+        accountId: MOET_ACCOUNT_ID,
+        threadId: 'thread-moet',
+        occurredAt: daysAgo(1),
+      }),
+    ]);
+    await db.execute(sql`UPDATE events SET extracted = ${JSON.stringify(EXTRACTION)}::jsonb`);
+
+    const opts = { briefDate: '2026-08-11', from: daysAgo(7), to: new Date(NOW.getTime() + 1000) };
+    await generateBrief(db, { ...opts, audience: 'jason', client: client('JASON ONLY TEXT') });
+    await generateBrief(db, { ...opts, audience: 'moet', client: client('MOET ONLY TEXT') });
+
+    const keys = await audiencesWithBriefOn(db, '2026-08-11');
+
+    // The brief page uses this to decide which switcher links to enable.
+    // Returning rows instead would serialize the other audience's whole brief
+    // into this page's payload — a real leak, caught end to end.
+    expect(keys.sort()).toEqual(['jason', 'moet']);
+    expect(JSON.stringify(keys)).not.toContain('MOET ONLY TEXT');
+    expect(JSON.stringify(keys)).not.toContain('JASON ONLY TEXT');
+  });
+
+  it('routes "Needs you today" by whose brief it is', async () => {
+    await upsertEvents(db, [msg({ externalId: 'a', occurredAt: daysAgo(1) })]);
+    // action_owner is 'jason' on this extraction.
+    await db.execute(sql`UPDATE events SET extracted = ${JSON.stringify(EXTRACTION)}::jsonb`);
+
+    const c = client('brief');
+    await generateBrief(db, {
+      briefDate: '2026-08-11',
+      audience: 'jason',
+      from: daysAgo(7),
+      to: new Date(NOW.getTime() + 1000),
+      client: c,
+    });
+
+    const payload = JSON.parse(
+      /Extracted facts:\s*([\s\S]*)$/.exec(
+        (c.calls[0]!.messages as Array<{ content: string }>)[0]!.content,
+      )![1]!,
+    );
+    expect(payload.needs_you_today).toHaveLength(1);
   });
 
   it('completes well inside the 60s M5 target', async () => {
@@ -267,6 +405,7 @@ describe.skipIf(!hasDb)('generateBrief end to end', () => {
 
     const result = await generateBrief(db, {
       briefDate: '2026-08-11',
+      audience: 'jason',
       from: daysAgo(7),
       to: new Date(NOW.getTime() + 1000),
       client: client('## Everything else\n- items'),

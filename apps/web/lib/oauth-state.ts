@@ -14,25 +14,36 @@ function sign(payload: string): string {
   return createHmac('sha256', env.hubAccessToken).update(payload).digest('base64url');
 }
 
-export function createState(provider: string): string {
-  const payload = `${provider}.${Date.now()}.${randomBytes(12).toString('base64url')}`;
+/**
+ * The audience travels inside the signed state rather than as a separate query
+ * parameter, so it cannot be swapped between the start of the flow and the
+ * callback — that would file a mailbox against the wrong person's brief.
+ */
+export function createState(provider: string, audience: string): string {
+  const payload = `${provider}.${audience}.${Date.now()}.${randomBytes(12).toString('base64url')}`;
   return `${payload}.${sign(payload)}`;
 }
 
-export function verifyState(state: string | null, provider: string): boolean {
-  if (!state) return false;
-  const parts = state.split('.');
-  if (parts.length !== 4) return false;
+export interface VerifiedState {
+  audience: string;
+}
 
-  const [gotProvider, issuedAt] = parts as [string, string, string, string];
-  const payload = parts.slice(0, 3).join('.');
+export function verifyState(state: string | null, provider: string): VerifiedState | null {
+  if (!state) return null;
+  const parts = state.split('.');
+  if (parts.length !== 5) return null;
+
+  const [gotProvider, audience, issuedAt] = parts as [string, string, string, string, string];
+  const payload = parts.slice(0, 4).join('.');
 
   const expected = Buffer.from(sign(payload));
-  const actual = Buffer.from(parts[3]!);
-  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return false;
+  const actual = Buffer.from(parts[4]!);
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
 
-  if (gotProvider !== provider) return false;
+  if (gotProvider !== provider) return null;
 
   const age = Date.now() - Number(issuedAt);
-  return Number.isFinite(age) && age >= 0 && age < MAX_AGE_MS;
+  if (!Number.isFinite(age) || age < 0 || age >= MAX_AGE_MS) return null;
+
+  return { audience };
 }

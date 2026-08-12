@@ -31,10 +31,14 @@ export interface ExtractEventsJob {
 export interface GenerateBriefJob {
   /** YYYY-MM-DD in the brief timezone. Defaults to today. */
   briefDate?: string;
+  /** Limit to one audience. Omit to generate every audience's brief. */
+  audience?: string;
 }
 
 export interface DeliverBriefJob {
-  briefDate: string;
+  briefDate?: string;
+  /** Limit to one audience. Omit to deliver every audience's brief. */
+  audience?: string;
 }
 
 /** §8: exponential backoff, max 5 retries. */

@@ -98,12 +98,17 @@ export function briefToText(markdown: string): string {
   return markdown;
 }
 
+/**
+ * Provider credentials only. The recipient comes from the audience being
+ * delivered to (config/audiences.json), so each person's brief goes to their
+ * own address; `BRIEF_TO_ADDRESS` remains as a fallback for a single-audience
+ * setup.
+ */
 export function deliveryConfigFromEnv(): DeliveryConfig | null {
   const apiKey = process.env.RESEND_API_KEY ?? '';
   const from = process.env.BRIEF_FROM_ADDRESS ?? '';
-  const to = process.env.BRIEF_TO_ADDRESS ?? '';
-  if (!apiKey || !from || !to) return null;
-  return { apiKey, from, to };
+  if (!apiKey || !from) return null;
+  return { apiKey, from, to: process.env.BRIEF_TO_ADDRESS ?? '' };
 }
 
 /**
@@ -112,13 +117,16 @@ export function deliveryConfigFromEnv(): DeliveryConfig | null {
  */
 export async function deliverBrief(
   config: DeliveryConfig | null,
-  input: { briefDate: string; markdown: string },
+  input: { briefDate: string; markdown: string; label?: string },
 ): Promise<DeliveryResult> {
   if (!config) {
     return {
       delivered: false,
-      reason: 'delivery not configured (RESEND_API_KEY / BRIEF_FROM_ADDRESS / BRIEF_TO_ADDRESS)',
+      reason: 'delivery not configured (RESEND_API_KEY / BRIEF_FROM_ADDRESS)',
     };
+  }
+  if (!config.to) {
+    return { delivered: false, reason: 'no recipient for this audience' };
   }
 
   const res = await fetch('https://api.resend.com/emails', {
@@ -130,7 +138,9 @@ export async function deliverBrief(
     body: JSON.stringify({
       from: config.from,
       to: [config.to],
-      subject: `Brief — ${input.briefDate}`,
+      subject: input.label
+        ? `Brief for ${input.label} — ${input.briefDate}`
+        : `Brief — ${input.briefDate}`,
       html: briefToHtml(input.markdown, input.briefDate),
       text: briefToText(input.markdown),
     }),

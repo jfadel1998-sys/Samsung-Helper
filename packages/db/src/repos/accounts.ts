@@ -41,8 +41,22 @@ export async function upsertAccount(
     displayName?: string | null;
     encryptedTokens: string;
     scopes: string[];
+    /** Which brief this mailbox feeds. */
+    audience?: string;
+    /** Addresses that count as the owner of THIS mailbox. */
+    ownerEmails?: string[];
   },
 ): Promise<AccountRow> {
+  // The mailbox's own address is always an owner address — without it, mail
+  // the account holder sent would not read as owner-authored.
+  const ownerEmails = [
+    ...new Set(
+      [...(input.ownerEmails ?? []), input.email ?? '']
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
+
   const [row] = await db
     .insert(accounts)
     .values({
@@ -53,6 +67,8 @@ export async function upsertAccount(
       encryptedTokens: input.encryptedTokens,
       scopes: input.scopes,
       status: 'active',
+      ...(input.audience ? { audience: input.audience } : {}),
+      ownerEmails,
     })
     .onConflictDoUpdate({
       target: [accounts.provider, accounts.externalId],
@@ -63,10 +79,23 @@ export async function upsertAccount(
         scopes: input.scopes,
         // Reconnecting clears a reauth_required flag.
         status: 'active',
+        // Audience is only overwritten when explicitly supplied, so
+        // reconnecting a mailbox does not silently move it to the default
+        // audience and empty someone's brief.
+        ...(input.audience ? { audience: input.audience } : {}),
+        ownerEmails,
       },
     })
     .returning();
   return row!;
+}
+
+export async function listAccountsForAudience(db: Db, audience: string): Promise<AccountRow[]> {
+  return db.select().from(accounts).where(eq(accounts.audience, audience));
+}
+
+export async function setAccountAudience(db: Db, id: string, audience: string) {
+  await db.update(accounts).set({ audience }).where(eq(accounts.id, id));
 }
 
 export async function updateTokens(db: Db, id: string, encryptedTokens: string) {

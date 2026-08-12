@@ -82,7 +82,7 @@ the required env vars are present, 503 otherwise.
 | Path | What it shows |
 |---|---|
 | `/` | Connected mailboxes, latest brief |
-| `/brief/[date]` | One day's brief |
+| `/brief/[date]` | One day's brief. `?audience=moet` for another person's |
 | `/ops` | Per-account sync status, subscription expiry, consecutive failures, pipeline counts, recent briefs |
 
 Everything except `/api/health` and the webhook receivers is behind a single
@@ -105,6 +105,26 @@ These are the things that silently break this project.
 | Webhooks | Never trusted for content. A notification means "something changed, go sync". |
 | Polling | Runs every 30 min per account regardless of webhook health. Webhook-only ingestion is how these systems die. |
 
+## Audiences
+
+Each person in `config/audiences.json` gets their own brief, built only from
+the mailboxes assigned to them. Mail in one person's mailbox never appears in
+another person's brief, and "Needs you today" means the items assigned to
+*that* person.
+
+Assign a mailbox when you connect it:
+
+```
+/api/auth/outlook/start?audience=moet
+```
+
+The audience travels inside the signed OAuth state, so it cannot be swapped
+between the start of the flow and the callback. Reconnecting a mailbox keeps
+its existing audience unless you explicitly pass a different one.
+
+Audience keys must match a value of the extraction schema's `action_owner`
+enum — adding a third person means adding them there too.
+
 ## Job numbers
 
 The canonical form is `NNNN` or `NNNN.S` — `2269` or `2269.2`. Four-digit base,
@@ -124,6 +144,7 @@ price, and zip code reads as a job number.
 
 ## Docs
 
+- `docs/audiences.md` — who gets a brief, and how mail is routed
 - `docs/counterparties.md` — what the allowlist is and how to generate it from your own mail
 - `docs/gmail-setup.md` — Google Cloud, OAuth consent, Pub/Sub push
 - `docs/outlook-setup.md` — Azure AD app registration

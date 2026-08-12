@@ -23,6 +23,17 @@ const account = await upsertAccount(db, {
   displayName: 'Jason',
   encryptedTokens: vault.encryptTokens({ accessToken: 'demo', refreshToken: 'demo' }),
   scopes: ['Mail.Read', 'offline_access', 'User.Read'],
+  audience: 'jason',
+});
+
+const moetAccount = await upsertAccount(db, {
+  provider: 'outlook',
+  externalId: 'demo-moet',
+  email: 'moet@traxtone.com',
+  displayName: 'Moet',
+  encryptedTokens: vault.encryptTokens({ accessToken: 'demo', refreshToken: 'demo' }),
+  scopes: ['Mail.Read', 'offline_access', 'User.Read'],
+  audience: 'moet',
 });
 
 await db.execute(sql`
@@ -165,6 +176,57 @@ await upsertEvents(db, [
       dates_mentioned: ['week of the 14th'],
     },
   ),
+  // In Moet's mailbox — these must appear only in her brief.
+  ev(
+    'moet-1',
+    {
+      accountId: moetAccount.id,
+      actorName: 'Example Supplier',
+      actorHandle: 'ar@example-supplier.it',
+      subject: 'RE: FOB clarification',
+      threadId: 'thread-moet-fob',
+      occurredAt: hoursAgo(30),
+    },
+    {
+      ...base,
+      external_id: 'moet-1',
+      job_number: '2269.2',
+      project_name: 'GVR Local Stone',
+      counterparty: 'Example Supplier',
+      counterparty_type: 'supplier',
+      category: 'shipping_logistics',
+      summary: 'No answer yet on whether terms are FOB Livorno or ex-works Carrara.',
+      action_required: true,
+      action_owner: 'moet',
+      blocking_question: 'FOB Livorno or ex-works Carrara?',
+      urgency: 'high',
+    },
+  ),
+  ev(
+    'moet-2',
+    {
+      accountId: moetAccount.id,
+      actorName: 'Vegas Stoneworks',
+      actorHandle: 'shop@example-fabricator.com',
+      subject: 'Templating confirmed',
+      threadId: 'thread-moet-template',
+      occurredAt: hoursAgo(8),
+    },
+    {
+      ...base,
+      external_id: 'moet-2',
+      job_number: '3310',
+      project_name: 'Palms Tower 2',
+      counterparty: 'Vegas Stoneworks',
+      counterparty_type: 'fabricator',
+      category: 'scheduling',
+      summary: 'Confirmed the templating window for tower 2.',
+      action_required: false,
+      action_owner: 'none',
+      blocking_question: null,
+      urgency: 'normal',
+    },
+  ),
   // Filtered out by the prefilter — present so /ops shows a realistic cut.
   ...Array.from({ length: 22 }, (_, i) =>
     ev(
@@ -202,17 +264,46 @@ const stub: MessagesCreateClient = {
   }),
 };
 
+const moetStub: MessagesCreateClient = {
+  create: async () => ({
+    content: [
+      {
+        type: 'text',
+        text: `## Needs you today
+- **2269.2 GVR Local Stone** — supplier has not answered the FOB question (Livorno or ex-works Carrara); the PO cannot be released until it is settled.
+
+## Everything else
+- Vegas Stoneworks confirmed the templating window for Palms Tower 2.`,
+      },
+    ],
+    usage: { input_tokens: 640, output_tokens: 120 },
+  }),
+};
+
 const briefDate = briefDateFor(new Date(), process.env.BRIEF_TIMEZONE ?? 'America/Los_Angeles');
-const result = await generateBrief(db, {
+const window = { from: hoursAgo(24 * 7), to: new Date(Date.now() + 60_000) };
+
+const jasonBrief = await generateBrief(db, {
   briefDate,
-  from: hoursAgo(24 * 7),
-  to: new Date(Date.now() + 60_000),
+  audience: 'jason',
+  audienceLabel: 'Jason',
+  ...window,
   client: stub,
+});
+const moetBrief = await generateBrief(db, {
+  briefDate,
+  audience: 'moet',
+  audienceLabel: 'Moet',
+  ...window,
+  client: moetStub,
 });
 
 console.log(
-  `seeded: 1 account, 26 events, brief ${briefDate} with ${result.itemCount} item(s)` +
-    `${result.lintWarnings.length ? ` (lint: ${result.lintWarnings.join(', ')})` : ''}`,
+  `seeded: 2 accounts, 28 events\n` +
+    `  brief ${briefDate} jason: ${jasonBrief.itemCount} item(s)` +
+    `${jasonBrief.lintWarnings.length ? ` (lint: ${jasonBrief.lintWarnings.join(', ')})` : ''}\n` +
+    `  brief ${briefDate} moet:  ${moetBrief.itemCount} item(s)` +
+    `${moetBrief.lintWarnings.length ? ` (lint: ${moetBrief.lintWarnings.join(', ')})` : ''}`,
 );
 
 await getSql().end();

@@ -18,9 +18,12 @@ export const SYNTHESIS_MODEL = 'claude-sonnet-5';
  */
 const MAX_TOKENS = 8_000;
 
-export const SYNTHESIS_SYSTEM_PROMPT = `You write a daily operating brief for Jason, who owns Traxtone, a Las Vegas project-management firm handling imported natural stone, porcelain, and engineered slabs and tile for large commercial projects — hotels, resorts, casinos — and high-end residential.
+export function synthesisSystemPrompt(readerLabel: string): string {
+  return `You write a daily operating brief for ${readerLabel}, who works at Traxtone, a Las Vegas project-management firm handling imported natural stone, porcelain, and engineered slabs and tile for large commercial projects — hotels, resorts, casinos — and high-end residential.
 
-You are given structured facts already extracted from his mail, pre-grouped and pre-sorted. Turn them into the brief. Do not re-sort, re-group, or re-prioritize; the grouping given to you is the grouping.
+The brief is for ${readerLabel} and nobody else. "Needs you today" means items ${readerLabel} has to act on.
+
+You are given structured facts already extracted from their mail, pre-grouped and pre-sorted. Turn them into the brief. Do not re-sort, re-group, or re-prioritize; the grouping given to you is the grouping.
 
 Write in Markdown, using only the section headers you are given, in the order given. Omit any section header whose list is empty — never write a header followed by "nothing here".
 
@@ -33,6 +36,7 @@ Do not invent, infer, or round. If a field is null it was not stated, so leave i
 For each item, write one line: the fact, then what is pending if anything. Combine several facts about the same job into consecutive lines under that job's block rather than repeating the job header.
 
 Where an item has been open for a number of days, state it as given, e.g. "(3 days open)".`;
+}
 
 export interface SynthesisResult {
   markdown: string;
@@ -101,9 +105,13 @@ const SECTION_HEADERS = [
   '## Everything else   (from everything_else — one line each)',
 ].join('\n');
 
-export function buildSynthesisPrompt(grouped: GroupedBrief, briefDate: string): string {
+export function buildSynthesisPrompt(
+  grouped: GroupedBrief,
+  briefDate: string,
+  readerLabel = 'Jason',
+): string {
   return (
-    `Brief date: ${briefDate}\n\n` +
+    `Brief date: ${briefDate}\nReader: ${readerLabel}\n\n` +
     `Section headers, in order. Omit any whose list is empty:\n${SECTION_HEADERS}\n\n` +
     `Extracted facts:\n\n${JSON.stringify(buildSynthesisPayload(grouped), null, 2)}`
   );
@@ -113,11 +121,12 @@ export async function synthesize(
   client: MessagesCreateClient,
   grouped: GroupedBrief,
   briefDate: string,
+  readerLabel = 'Jason',
 ): Promise<SynthesisResult> {
   const response = await client.create({
     model: SYNTHESIS_MODEL,
     max_tokens: MAX_TOKENS,
-    system: SYNTHESIS_SYSTEM_PROMPT,
+    system: synthesisSystemPrompt(readerLabel),
     // Sonnet 5 rejects temperature/top_p/top_k outright, so consistency comes
     // from the prompt and the pre-sorted input, not from sampling parameters.
     output_config: { effort: 'medium' },

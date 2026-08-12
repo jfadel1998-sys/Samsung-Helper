@@ -52,9 +52,14 @@ function byUrgencyThenAge(a: BriefItem, b: BriefItem): number {
   return a.occurredAt.getTime() - b.occurredAt.getTime();
 }
 
-export function groupForBrief(items: BriefItem[]): GroupedBrief {
+/**
+ * @param audience whose brief this is. "Needs you today" is the items assigned
+ *   to that person, so the same extraction reads as actionable in one person's
+ *   brief and as context in another's.
+ */
+export function groupForBrief(items: BriefItem[], audience = 'jason'): GroupedBrief {
   const needsYouToday = items
-    .filter((i) => i.extraction.action_required && i.extraction.action_owner === 'jason')
+    .filter((i) => i.extraction.action_required && i.extraction.action_owner === audience)
     .sort(byUrgencyThenAge);
 
   const waitingOnOthers = items

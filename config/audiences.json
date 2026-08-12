@@ -1,0 +1,30 @@
+{
+  "$comment": [
+    "Who gets a brief. Each audience gets its own brief each day, built only",
+    "from the mailboxes assigned to it — one person's mail never appears in",
+    "another person's brief.",
+    "",
+    "The KEY must match a value of the extraction schema's `action_owner`",
+    "enum ('jason' | 'moet'), because the brief's 'Needs you today' section is",
+    "the items where action_owner equals the audience. Adding a third person",
+    "means adding them to that enum too (packages/extraction/src/schema.ts).",
+    "",
+    "`deliverTo` is the 07:00 email recipient. Leave it empty to generate the",
+    "brief without emailing it — it is still readable at /brief/<date>.",
+    "",
+    "Assign a mailbox to an audience when you connect it:",
+    "  /api/auth/outlook/start?audience=moet"
+  ],
+
+  "audiences": {
+    "jason": {
+      "label": "Jason",
+      "deliverTo": "jason@traxtone.com",
+      "default": true
+    },
+    "moet": {
+      "label": "Moet",
+      "deliverTo": "moet@traxtone.com"
+    }
+  }
+}

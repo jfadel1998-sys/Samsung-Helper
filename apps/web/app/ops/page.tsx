@@ -69,7 +69,13 @@ export default async function OpsPage() {
                 {h.state?.lastError && <div className="muted">{h.state.lastError}</div>}
                 {h.account.status === 'reauth_required' && (
                   <div>
-                    <a href={`/api/auth/${h.account.provider}/start`}>Reconnect</a>
+                    {/* Carry the audience through so reconnecting cannot
+                        silently move the mailbox to someone else's brief. */}
+                    <a
+                      href={`/api/auth/${h.account.provider}/start?audience=${h.account.audience}`}
+                    >
+                      Reconnect
+                    </a>
                   </div>
                 )}
               </li>
@@ -87,6 +93,7 @@ export default async function OpsPage() {
             <thead>
               <tr>
                 <th>Mailbox</th>
+                <th>Brief</th>
                 <th>Status</th>
                 <th>Last sync</th>
                 <th>Last full</th>
@@ -106,6 +113,7 @@ export default async function OpsPage() {
                       {h.account.email ?? h.account.externalId}
                       <div className="muted">{h.account.provider}</div>
                     </td>
+                    <td>{h.account.audience}</td>
                     <td>
                       <span
                         className={`pill ${h.account.status === 'active' ? 'ok' : 'bad'}`}
@@ -190,6 +198,7 @@ export default async function OpsPage() {
             <thead>
               <tr>
                 <th>Date</th>
+                <th>Brief</th>
                 <th>Events</th>
                 <th>Model</th>
                 <th>Tokens</th>
@@ -200,8 +209,11 @@ export default async function OpsPage() {
               {briefs.map((b) => (
                 <tr key={b.id}>
                   <td>
-                    <Link href={`/brief/${b.briefDate}`}>{b.briefDate}</Link>
+                    <Link href={`/brief/${b.briefDate}?audience=${b.audience}`}>
+                      {b.briefDate}
+                    </Link>
                   </td>
+                  <td>{b.audience}</td>
                   <td>{b.eventIds.length}</td>
                   <td>{b.model}</td>
                   <td>

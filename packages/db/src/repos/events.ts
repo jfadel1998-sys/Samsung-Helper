@@ -1,6 +1,6 @@
 import { and, asc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { Db } from '../client';
-import { events, type EventRow, type NewEventRow } from '../schema';
+import { accounts, events, type EventRow, type NewEventRow } from '../schema';
 
 /** Hard cap from §5: body_excerpt is capped at 4000 chars. */
 export const BODY_EXCERPT_MAX = 4000;
@@ -123,11 +123,26 @@ export async function eventsMissingVerdict(db: Db, limit = 500): Promise<EventRo
     .limit(limit);
 }
 
-/** Events in the brief window that carry a usable extraction. */
-export async function extractedInWindow(db: Db, from: Date, to: Date): Promise<EventRow[]> {
-  return db
-    .select()
+/**
+ * Events in the brief window that carry a usable extraction.
+ *
+ * Scoped to one audience's mailboxes: each person's brief is built only from
+ * their own mail.
+ */
+export async function extractedInWindow(
+  db: Db,
+  from: Date,
+  to: Date,
+  audience?: string,
+): Promise<EventRow[]> {
+  // Left join, not inner: with no audience filter this must still return
+  // events that have no account row, rather than silently dropping them. When
+  // an audience IS given the predicate below makes it behave as an inner join,
+  // which is right — an event with no account belongs to no audience.
+  const rows = await db
+    .select({ event: events })
     .from(events)
+    .leftJoin(accounts, eq(accounts.id, events.accountId))
     .where(
       and(
         gte(events.occurredAt, from),
@@ -135,7 +150,10 @@ export async function extractedInWindow(db: Db, from: Date, to: Date): Promise<E
         eq(events.prefilterVerdict, 'keep'),
         sql`${events.extracted} IS NOT NULL`,
         sql`${events.extracted} -> 'extraction_error' IS NULL`,
+        ...(audience ? [eq(accounts.audience, audience)] : []),
       ),
     )
     .orderBy(asc(events.occurredAt));
+
+  return rows.map((r) => r.event);
 }

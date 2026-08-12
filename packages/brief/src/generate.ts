@@ -14,6 +14,10 @@ export const DEFAULT_WINDOW_HOURS = 24;
 
 export interface GenerateBriefOptions {
   briefDate: string;
+  /** Whose brief. Scopes which mailboxes contribute and who "you" is. */
+  audience: string;
+  /** Label used in the prompt so the model addresses the right person. */
+  audienceLabel?: string;
   from: Date;
   to: Date;
   client?: MessagesCreateClient;
@@ -36,8 +40,9 @@ function isUsable(extracted: unknown): extracted is StoredExtraction {
 }
 
 /**
- * Runs stage 3 end to end: pull the window's extractions, attach days-open
- * from SQL, group deterministically, synthesize, persist.
+ * Runs stage 3 end to end for one audience: pull that audience's extractions
+ * from the window, attach days-open from SQL, group deterministically,
+ * synthesize, persist.
  */
 export async function generateBrief(
   db: Db,
@@ -46,7 +51,7 @@ export async function generateBrief(
   const startedAt = Date.now();
 
   const [rows, waits] = await Promise.all([
-    extractedInWindow(db, opts.from, opts.to),
+    extractedInWindow(db, opts.from, opts.to, opts.audience),
     threadWaits(db),
   ]);
 
@@ -64,7 +69,7 @@ export async function generateBrief(
     });
   }
 
-  const grouped = groupForBrief(items);
+  const grouped = groupForBrief(items, opts.audience);
   const client = opts.client ?? defaultSynthesisClient();
 
   const result =
@@ -76,10 +81,11 @@ export async function generateBrief(
           inputTokens: 0,
           outputTokens: 0,
         }
-      : await synthesize(client, grouped, opts.briefDate);
+      : await synthesize(client, grouped, opts.briefDate, opts.audienceLabel ?? opts.audience);
 
   const brief = await saveBrief(db, {
     briefDate: opts.briefDate,
+    audience: opts.audience,
     markdown: result.markdown,
     eventIds: items.map((i) => i.eventId),
     model: result.model,
@@ -108,22 +114,28 @@ export function briefDateFor(when: Date, timeZone: string): string {
 /**
  * The window is "previous brief time -> now" (§8). The previous brief's own
  * timestamp is the anchor, so a missed or delayed run picks up the gap rather
- * than dropping it.
+ * than dropping it. Anchored per audience, since one person's brief may have
+ * been generated when another's was not.
  */
 export async function resolveWindow(
   db: Db,
   now: Date,
   briefDate: string,
+  audience: string,
 ): Promise<{ from: Date; to: Date }> {
-  const previous = await previousBrief(db, briefDate);
+  const previous = await previousBrief(db, briefDate, audience);
   const from = previous
     ? previous.generatedAt
     : new Date(now.getTime() - DEFAULT_WINDOW_HOURS * 3600_000);
   return { from, to: now };
 }
 
-async function previousBrief(db: Db, briefDate: string): Promise<BriefRow | undefined> {
+async function previousBrief(
+  db: Db,
+  briefDate: string,
+  audience: string,
+): Promise<BriefRow | undefined> {
   const previousDate = new Date(`${briefDate}T00:00:00Z`);
   previousDate.setUTCDate(previousDate.getUTCDate() - 1);
-  return getBrief(db, previousDate.toISOString().slice(0, 10));
+  return getBrief(db, previousDate.toISOString().slice(0, 10), audience);
 }

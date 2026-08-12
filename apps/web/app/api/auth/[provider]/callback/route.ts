@@ -25,7 +25,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     return Response.json({ error: oauthError, description }, { status: 400 });
   }
 
-  if (!verifyState(url.searchParams.get('state'), provider)) {
+  const verified = verifyState(url.searchParams.get('state'), provider);
+  if (!verified) {
     return Response.json({ error: 'Invalid or expired OAuth state' }, { status: 400 });
   }
 
@@ -44,6 +45,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     displayName: result.displayName ?? null,
     encryptedTokens: getVault().encryptTokens(result.tokens),
     scopes: connector.scopes,
+    // Carried through the signed state, so it cannot be tampered with between
+    // the start of the flow and here.
+    audience: verified.audience,
   });
 
   // First sync does the 30-day backfill and creates the webhook subscription.

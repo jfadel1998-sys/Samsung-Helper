@@ -69,7 +69,7 @@ export async function syncAccount(job: SyncAccountJob): Promise<void> {
   }
 
   // The connector produced events; classify then persist them idempotently.
-  const verdicts = await classifyBatch(result.events);
+  const verdicts = await classifyBatch(result.events, account);
   const rows = result.events.map((e, i) => toEventRow(account.id, e, verdicts[i]!));
   const written = await upsertEvents(db, rows);
 
@@ -96,6 +96,11 @@ export async function syncAccount(job: SyncAccountJob): Promise<void> {
 /**
  * Runs the §7.1 prefilter over a sync batch.
  *
+ * Owner addresses come from the ACCOUNT, not a global env list: in Moet's
+ * mailbox, Moet is the owner. A global list would make her own sent mail look
+ * like a third party's and put Jason's address in the owner-in-To rule for a
+ * mailbox he does not read.
+ *
  * The "thread contains a prior owner message" rule needs thread history, so
  * that is resolved once per batch — one query for the DB side, unioned with any
  * owner message arriving in this same batch (common on a first backfill, where
@@ -103,9 +108,15 @@ export async function syncAccount(job: SyncAccountJob): Promise<void> {
  */
 async function classifyBatch(
   events: Array<Parameters<typeof toEventRow>[1]>,
+  account: { ownerEmails: string[]; email: string | null },
 ): Promise<string[]> {
   const db = getDb();
-  const ownerEmails = env.ownerEmails;
+  // Fall back to the global list for accounts connected before owner_emails
+  // existed, so an un-backfilled row still classifies sensibly.
+  const ownerEmails =
+    account.ownerEmails.length > 0
+      ? account.ownerEmails
+      : [account.email, ...env.ownerEmails].filter((e): e is string => Boolean(e));
 
   const threadIds = events.map((e) => e.threadId).filter((t): t is string => Boolean(t));
   const ownerThreads = await threadsWithOwnerMessages(db, threadIds);
