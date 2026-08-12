@@ -1,0 +1,63 @@
+{
+  "$comment": "Allowlist used by the prefilter corpus tests. Mirrors the shape of config/counterparties.json with stand-in domains.",
+
+  "domains": {
+    "traxtone.com": "internal",
+    "example-supplier.it": "supplier",
+    "example-supplier.es": "supplier",
+    "carrara-quarry-example.it": "supplier",
+    "example-forwarder.com": "freight_forwarder",
+    "genoa-shipping-example.it": "freight_forwarder",
+    "example-fabricator.com": "fabricator",
+    "vegas-stoneworks-example.com": "fabricator",
+    "example-gc.com": "gc",
+    "mccarthy-example-build.com": "gc",
+    "example-design.studio": "designer",
+    "example-resort-group.com": "client"
+  },
+
+  "addresses": {
+    "t.nickolas@independent-agent-example.net": "supplier"
+  },
+
+  "notificationSenders": [
+    "noreply@",
+    "no-reply@",
+    "donotreply@",
+    "notifications@",
+    "automated@",
+    "mailer-daemon@",
+    "bounce@",
+    "postmaster@"
+  ],
+
+  "notificationDomains": [
+    "calendar.google.com",
+    "docusign.net",
+    "linkedin.com",
+    "facebookmail.com",
+    "sendgrid.net",
+    "mailchimp.com",
+    "atlassian.net",
+    "slack.com",
+    "zoom.us",
+    "quickbooks-example.com"
+  ],
+
+  "stoneKeywords": [
+    "slab", "slabs", "tile", "tiles", "marble", "granite", "quartzite",
+    "porcelain", "travertine", "limestone", "onyx", "quartz", "stone",
+    "bundle", "bundles", "crate", "crates", "container", "vessel",
+    "fob", "cif", "bill of lading", "freight", "forwarder", "customs",
+    "fabricator", "fabrication", "template", "shop drawing", "shop drawings",
+    "submittal", "sample", "samples", "finish", "honed", "polished",
+    "leathered", "lot", "block", "quarry", "takeoff", "punch list",
+    "install", "installation"
+  ],
+
+  "projectKeywords": [
+    "job", "project", "po", "purchase order", "quote", "quotation", "rfq",
+    "proposal", "invoice", "change order", "scope", "schedule", "lead time",
+    "delivery"
+  ]
+}

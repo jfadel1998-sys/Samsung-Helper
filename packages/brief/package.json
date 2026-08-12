@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.65.0",
+    "@anthropic-ai/sdk": "^0.116.0",
     "@hub/config": "workspace:*",
     "@hub/db": "workspace:*",
     "@hub/extraction": "workspace:*",

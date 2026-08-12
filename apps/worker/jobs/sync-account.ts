@@ -13,8 +13,11 @@ import {
   recordSyncFailure,
   recordSyncSuccess,
   setAccountStatus,
+  threadsWithOwnerMessages,
   upsertEvents,
 } from '@hub/db';
+import { env } from '@hub/config';
+import { prefilter } from '@hub/brief';
 import { getBoss, QUEUES, type SyncAccountJob } from '@hub/jobs';
 import { buildAccountContext } from './context';
 
@@ -65,8 +68,9 @@ export async function syncAccount(job: SyncAccountJob): Promise<void> {
     return handleSyncError(err, account.id, ctx.log);
   }
 
-  // The connector produced events; persist them idempotently.
-  const rows = result.events.map((e) => toEventRow(account.id, e));
+  // The connector produced events; classify then persist them idempotently.
+  const verdicts = await classifyBatch(result.events);
+  const rows = result.events.map((e, i) => toEventRow(account.id, e, verdicts[i]!));
   const written = await upsertEvents(db, rows);
 
   await recordSyncSuccess(db, account.id, {
@@ -87,6 +91,44 @@ export async function syncAccount(job: SyncAccountJob): Promise<void> {
   }
 
   await ensureSubscription(account.id, state?.subscriptionId ?? null);
+}
+
+/**
+ * Runs the §7.1 prefilter over a sync batch.
+ *
+ * The "thread contains a prior owner message" rule needs thread history, so
+ * that is resolved once per batch — one query for the DB side, unioned with any
+ * owner message arriving in this same batch (common on a first backfill, where
+ * the owner's reply and the inbound message land together).
+ */
+async function classifyBatch(
+  events: Array<Parameters<typeof toEventRow>[1]>,
+): Promise<string[]> {
+  const db = getDb();
+  const ownerEmails = env.ownerEmails;
+
+  const threadIds = events.map((e) => e.threadId).filter((t): t is string => Boolean(t));
+  const ownerThreads = await threadsWithOwnerMessages(db, threadIds);
+  for (const e of events) {
+    if (e.isFromOwner && e.threadId) ownerThreads.add(e.threadId);
+  }
+
+  return events.map(
+    (e) =>
+      prefilter(
+        {
+          actorHandle: e.actorHandle,
+          subject: e.subject,
+          bodyExcerpt: e.bodyExcerpt,
+          isFromOwner: e.isFromOwner,
+          signals: e.signals,
+        },
+        {
+          ownerEmails,
+          threadHasOwnerMessage: Boolean(e.threadId && ownerThreads.has(e.threadId)),
+        },
+      ).verdict,
+  );
 }
 
 /**

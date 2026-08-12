@@ -92,6 +92,37 @@ export async function markExtractionFailed(db: Db, eventIds: string[], reason: s
     .where(inArray(events.id, eventIds));
 }
 
+/**
+ * Of the given thread ids, which already contain a message from the owner.
+ *
+ * Drives the §7.1 "thread contains a prior owner message" keep rule. Done as
+ * one query over the whole batch rather than per-event.
+ */
+export async function threadsWithOwnerMessages(
+  db: Db,
+  threadIds: string[],
+): Promise<Set<string>> {
+  const ids = [...new Set(threadIds.filter(Boolean))];
+  if (ids.length === 0) return new Set();
+
+  const rows = await db
+    .selectDistinct({ threadId: events.threadId })
+    .from(events)
+    .where(and(inArray(events.threadId, ids), eq(events.isFromOwner, true)));
+
+  return new Set(rows.map((r) => r.threadId).filter((t): t is string => Boolean(t)));
+}
+
+/** Events ingested before the prefilter existed, or before a rule change. */
+export async function eventsMissingVerdict(db: Db, limit = 500): Promise<EventRow[]> {
+  return db
+    .select()
+    .from(events)
+    .where(isNull(events.prefilterVerdict))
+    .orderBy(asc(events.occurredAt))
+    .limit(limit);
+}
+
 /** Events in the brief window that carry a usable extraction. */
 export async function extractedInWindow(db: Db, from: Date, to: Date): Promise<EventRow[]> {
   return db

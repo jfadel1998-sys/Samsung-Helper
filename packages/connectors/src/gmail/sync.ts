@@ -103,7 +103,9 @@ export async function fullSync(ctx: SyncCtx, opts: { since: Date }): Promise<Syn
     });
   }
 
-  const days = Math.max(1, Math.ceil((Date.now() - opts.since.getTime()) / 86_400_000));
+  // Rounded, not ceiled: a caller passing "now - 30 days" is asking for 30,
+  // and ceil turns that into 31 the moment a millisecond elapses in between.
+  const days = Math.max(1, Math.round((Date.now() - opts.since.getTime()) / 86_400_000));
   const query = encodeURIComponent(`in:inbox newer_than:${days}d`);
 
   const ids: string[] = [];
