@@ -25,6 +25,7 @@ export async function renewSubscriptions(): Promise<void> {
     if (!account || account.status !== 'active') continue;
 
     const { connector, ctx } = await buildAccountContext(account);
+    if (!connector.supportsWebhooks) continue;
 
     try {
       const { expiresAt } = await connector.renew(ctx);

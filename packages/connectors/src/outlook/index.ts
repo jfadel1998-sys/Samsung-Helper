@@ -8,6 +8,8 @@ import { renew, subscribe, unsubscribe } from './webhook';
 export const outlookConnector: Connector = {
   provider: OUTLOOK_PROVIDER,
   scopes: OUTLOOK_SCOPES,
+  authKind: 'oauth',
+  supportsWebhooks: true,
   getAuthUrl,
   exchangeCode,
   refresh,

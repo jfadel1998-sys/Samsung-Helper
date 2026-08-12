@@ -66,17 +66,54 @@ export interface SyncCtx {
   log: (msg: string, meta?: Record<string, unknown>) => void;
 }
 
+export interface ConnectResult {
+  tokens: OAuthTokens;
+  externalId: string;
+  email?: string;
+  displayName?: string;
+}
+
+/** Credentials a non-OAuth connector needs, as entered by the user. */
+export interface Credentials {
+  username: string;
+  password: string;
+  /** Optional host override; connectors ship sensible defaults. */
+  host?: string;
+  port?: number;
+}
+
+/** The same credentials after defaults are applied, as stored in the vault. */
+export interface StoredCredentials {
+  username: string;
+  password: string;
+  host: string;
+  port: number;
+}
+
 export interface Connector {
   readonly provider: string;
   readonly scopes: string[];
 
-  getAuthUrl(state: string): string;
-  exchangeCode(code: string): Promise<{
-    tokens: OAuthTokens;
-    externalId: string;
-    email?: string;
-    displayName?: string;
-  }>;
+  /**
+   * 'oauth' — redirect round trip (Outlook, Gmail API).
+   * 'credentials' — username + app password entered directly (IMAP).
+   */
+  readonly authKind: 'oauth' | 'credentials';
+
+  /**
+   * False for connectors with no push mechanism. The sync job skips
+   * subscription creation entirely rather than failing and retrying every run,
+   * and /ops shows "poll only" instead of a missing-subscription warning.
+   * Polling every 30 min is the mandated fallback anyway (§2.2).
+   */
+  readonly supportsWebhooks: boolean;
+
+  /** OAuth connectors only. */
+  getAuthUrl?(state: string): string;
+  exchangeCode?(code: string): Promise<ConnectResult>;
+  /** Credential connectors only. Verifies by connecting before storing. */
+  connect?(credentials: Credentials): Promise<ConnectResult>;
+
   refresh(tokens: OAuthTokens): Promise<OAuthTokens>;
 
   /** Bounded backfill. Must be safely re-runnable. */

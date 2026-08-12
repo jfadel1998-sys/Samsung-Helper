@@ -4,12 +4,38 @@ import * as schema from './schema';
 
 export type Db = ReturnType<typeof createDb>['db'];
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+/**
+ * TLS on unless the server is on this machine.
+ *
+ * Railway's managed Postgres terminates plaintext connections from outside the
+ * private network, so `require` is right everywhere except a local dev or test
+ * database. Matching on the parsed host rather than a substring: a URL written
+ * as `127.0.0.1` is just as local as one written `localhost`, and getting it
+ * wrong surfaces as "socket disconnected before secure TLS connection was
+ * established", which reads like a network fault rather than a config choice.
+ */
+export function wantsTls(connectionString: string): boolean {
+  let host: string;
+  try {
+    const url = new URL(connectionString);
+    // An explicit sslmode in the URL wins over the host heuristic.
+    const mode = url.searchParams.get('sslmode');
+    if (mode === 'disable') return false;
+    if (mode) return true;
+    host = url.hostname.toLowerCase();
+  } catch {
+    // Unparseable: fall back to the safe direction.
+    return true;
+  }
+  return !LOOPBACK_HOSTS.has(host);
+}
+
 export function createDb(connectionString: string, opts: { max?: number } = {}) {
   const sql = postgres(connectionString, {
     max: opts.max ?? 10,
-    // Railway's managed Postgres terminates plaintext connections from outside
-    // the private network; `require` works in both places.
-    ssl: connectionString.includes('localhost') ? false : 'require',
+    ssl: wantsTls(connectionString) ? 'require' : false,
     onnotice: () => {},
   });
   const db = drizzle(sql, { schema });

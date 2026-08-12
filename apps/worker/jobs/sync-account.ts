@@ -201,6 +201,12 @@ async function ensureSubscription(accountId: string, existing: string | null): P
   if (!account) return;
 
   const { connector, ctx } = await buildAccountContext(account);
+
+  // Poll-only connectors (IMAP) have nothing to subscribe to. Attempting it
+  // would fail on every single sync and fill the log with an error that is not
+  // one — polling every 30 min is the intended mechanism there (§2.2).
+  if (!connector.supportsWebhooks) return;
+
   try {
     const sub = await connector.subscribe(ctx);
     await patchSyncState(db, accountId, {

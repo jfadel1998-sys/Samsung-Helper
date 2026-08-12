@@ -18,7 +18,7 @@ apps/web            Next.js — UI, OAuth callbacks, webhook receivers
 apps/worker         Job runner (pg-boss), all scheduled work
 packages/db         Drizzle schema, migrations, repositories
 packages/crypto     AES-256-GCM token vault
-packages/connectors Connector interface + outlook/ + gmail/
+packages/connectors Connector interface + outlook/ + gmail/ + imap/
 packages/extraction Zod schema, prompts, batched Haiku extraction
 packages/brief      Prefilter, days-open SQL, Sonnet synthesis
 packages/config     Typed env + counterparty allowlist loader
@@ -99,6 +99,9 @@ These are the things that silently break this project.
 | | |
 |---|---|
 | Gmail refresh tokens | Die after **7 days** if the Google Cloud app is in "Testing". Use an **Internal** Workspace app. See §2.1 and `docs/gmail-setup.md`. |
+| Personal @gmail.com | Cannot use the Internal escape hatch, and OAuth for it means Google's CASA assessment. Connect it over **IMAP with an app password** instead — `docs/imap-setup.md`. |
+| IMAP mailboxes | No push equivalent exists; they are picked up by the 30-min poll only. Fine for a 7:00 AM brief. |
+| IMAP UIDVALIDITY | A server rotation reissues every UID. Treated like a stale cursor — bounded full re-sync, not an error. |
 | Gmail `users.watch()` | Expires after 7 days — renewed daily. |
 | Graph subscriptions | Expire after ~2.9 days — renewed every 6h, anything inside 24h. |
 | Gmail `historyId` | Valid ~7 days. A 404 falls back to a bounded 30-day full sync, it does not error. |
@@ -116,10 +119,13 @@ Assign a mailbox when you connect it:
 
 ```
 /api/auth/outlook/start?audience=moet
+/api/auth/gmail/start?audience=moet
+/api/auth/imap/start?audience=moet     # personal Gmail, app password
 ```
 
 The audience travels inside the signed OAuth state, so it cannot be swapped
-between the start of the flow and the callback. Reconnecting a mailbox keeps
+between the start of the flow and the callback. IMAP has no redirect to
+protect — it picks the audience on the form itself. Reconnecting a mailbox keeps
 its existing audience unless you explicitly pass a different one.
 
 Audience keys must match a value of the extraction schema's `action_owner`
@@ -147,5 +153,6 @@ price, and zip code reads as a job number.
 - `docs/audiences.md` — who gets a brief, and how mail is routed
 - `docs/counterparties.md` — what the allowlist is and how to generate it from your own mail
 - `docs/gmail-setup.md` — Google Cloud, OAuth consent, Pub/Sub push
+- `docs/imap-setup.md` — personal Gmail via app password, and any other IMAP host
 - `docs/outlook-setup.md` — Azure AD app registration
 - `docs/key-rotation.md` — rotating `TOKEN_ENCRYPTION_KEY` without reconnecting mailboxes

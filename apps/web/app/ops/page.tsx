@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getConnector, hasConnector } from '@hub/connectors';
 import { accountHealth, getDb, listBriefs, pipelineStats } from '@hub/db';
 import { requireSession } from '../../lib/session';
 
@@ -15,6 +16,11 @@ function ago(when: Date | null | undefined): string {
   const hours = Math.floor(mins / 60);
   if (hours < 48) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
+}
+
+/** False for IMAP, and for any account whose provider is no longer registered. */
+function connectorSupportsWebhooks(provider: string): boolean {
+  return hasConnector(provider) ? getConnector(provider).supportsWebhooks : false;
 }
 
 function until(when: Date | null | undefined): { label: string; cls: string } {
@@ -105,7 +111,14 @@ export default async function OpsPage() {
             </thead>
             <tbody>
               {health.map((h) => {
-                const sub = until(h.state?.subscriptionExpiresAt);
+                // A poll-only connector has nothing to subscribe to, so an
+                // empty subscription is correct there, not a fault. Showing it
+                // red would put a permanent false alarm on the one page whose
+                // job is making real degradation stand out (§8).
+                const polls = !connectorSupportsWebhooks(h.account.provider);
+                const sub = polls
+                  ? { label: 'poll only', cls: 'muted' }
+                  : until(h.state?.subscriptionExpiresAt);
                 const failures = h.state?.consecutiveFailures ?? 0;
                 return (
                   <tr key={h.account.id}>

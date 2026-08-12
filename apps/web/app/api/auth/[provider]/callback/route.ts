@@ -36,6 +36,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   }
 
   const connector = getConnector(provider);
+  if (!connector.exchangeCode) {
+    return Response.json({ error: `${provider} does not use OAuth` }, { status: 400 });
+  }
   const result = await connector.exchangeCode(code);
 
   const account = await upsertAccount(getDb(), {

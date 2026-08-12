@@ -8,6 +8,8 @@ import { renew, subscribe, unsubscribe } from './webhook';
 export const gmailConnector: Connector = {
   provider: GMAIL_PROVIDER,
   scopes: GMAIL_SCOPES,
+  authKind: 'oauth',
+  supportsWebhooks: true,
   getAuthUrl,
   exchangeCode,
   refresh,

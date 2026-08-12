@@ -23,6 +23,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   }
 
   const audience = resolveAudience(new URL(req.url).searchParams.get('audience'));
-  const url = getConnector(provider).getAuthUrl(createState(provider, audience.key));
-  return Response.redirect(url, 302);
+  const connector = getConnector(provider);
+
+  // Credentials connectors (IMAP) have no redirect to start. They get their own
+  // route under /api/auth/<provider>/start, which a static segment resolves to
+  // ahead of this one — reaching here means a provider was added without it.
+  if (connector.authKind !== 'oauth' || !connector.getAuthUrl) {
+    return Response.json(
+      { error: `${provider} does not use OAuth; connect it from its own form` },
+      { status: 400 },
+    );
+  }
+
+  return Response.redirect(connector.getAuthUrl(createState(provider, audience.key)), 302);
 }

@@ -28,6 +28,14 @@ export class DecryptionError extends Error {
   }
 }
 
+/**
+ * What a connector stores in `accounts.encrypted_tokens`.
+ *
+ * Named for the OAuth case because that is the common one, but credential
+ * connectors (IMAP with an app password) put their secret in `credentials`
+ * instead. Both go through the same AES-256-GCM envelope — an app password is
+ * exactly as sensitive as a refresh token.
+ */
 export interface OAuthTokens {
   accessToken: string;
   refreshToken?: string;
@@ -37,6 +45,13 @@ export interface OAuthTokens {
   tokenType?: string;
   /** Gmail returns an id_token we keep for the account's stable subject id. */
   idToken?: string;
+  /** Credential connectors (IMAP). Mutually exclusive with the OAuth fields. */
+  credentials?: {
+    username: string;
+    password: string;
+    host: string;
+    port: number;
+  };
 }
 
 function b64url(buf: Buffer): string {

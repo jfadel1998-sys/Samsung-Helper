@@ -69,10 +69,17 @@ export default async function HomePage() {
             {a.label}:{' '}
             <a href={`/api/auth/outlook/start?audience=${a.key}`}>Outlook</a>
             {' · '}
-            <a href={`/api/auth/imap/start?audience=${a.key}`}>Gmail / IMAP</a>
+            <a href={`/api/auth/gmail/start?audience=${a.key}`}>Gmail (Workspace)</a>
+            {' · '}
+            <a href={`/api/auth/imap/start?audience=${a.key}`}>Gmail (personal, IMAP)</a>
           </li>
         ))}
       </ul>
+      <p className="muted">
+        A personal @gmail.com must use the IMAP link — it cannot use the Internal
+        Workspace consent screen, and OAuth for it means Google&apos;s CASA assessment.
+        See <code>docs/imap-setup.md</code>.
+      </p>
 
       <h2>Operations</h2>
       <p>
