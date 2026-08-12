@@ -26,6 +26,7 @@
     "@hub/extraction": "workspace:*",
     "@hub/jobs": "workspace:*",
     "@types/node": "^22.10.2",
+    "drizzle-orm": "^0.38.4",
     "tsx": "^4.23.12",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

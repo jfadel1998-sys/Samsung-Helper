@@ -40,6 +40,13 @@ pnpm dev:web                  # http://localhost:3000
 pnpm dev:worker
 ```
 
+Seed a realistic day of mail and a brief, without connecting a mailbox or
+spending anything on the API:
+
+```sh
+pnpm exec tsx scripts/seed-demo.ts
+```
+
 Run the test suite:
 
 ```sh
@@ -69,6 +76,21 @@ One project, three services: **web**, **worker**, and managed **Postgres**.
 
 Health check: `GET /api/health` returns 200 when the database is reachable and
 the required env vars are present, 503 otherwise.
+
+## Pages
+
+| Path | What it shows |
+|---|---|
+| `/` | Connected mailboxes, latest brief |
+| `/brief/[date]` | One day's brief |
+| `/ops` | Per-account sync status, subscription expiry, consecutive failures, pipeline counts, recent briefs |
+
+Everything except `/api/health` and the webhook receivers is behind a single
+session check against `HUB_ACCESS_TOKEN` (§9 — one user, no auth SaaS).
+
+`/ops` is where §8's "silent degradation is the enemy" is cashed out: an
+account that has failed three times in a row, or that needs reauthorizing,
+appears at the top with a reconnect link.
 
 ## Operational facts worth knowing
 
