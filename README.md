@@ -105,8 +105,26 @@ These are the things that silently break this project.
 | Webhooks | Never trusted for content. A notification means "something changed, go sync". |
 | Polling | Runs every 30 min per account regardless of webhook health. Webhook-only ingestion is how these systems die. |
 
+## Job numbers
+
+The canonical form is `NNNN` or `NNNN.S` — `2269` or `2269.2`. Four-digit base,
+optional sub-job with no leading zeros.
+
+Mail never uses one spelling, so parsing is loose and storage is strict. All of
+these normalize to `2269.2` and land in one block in the brief:
+
+```
+2269.2   2269-2   2269_2   #2269.2   Job 2269.2   PROJECT 2269.02   No. 2269.2
+```
+
+A number with an explicit marker (`job`, `project`, `#`, `no.`) is treated as
+unambiguous and may be 3–6 digits. A bare number must be exactly four digits
+*and* have stone or project vocabulary nearby, because otherwise every year,
+price, and zip code reads as a job number.
+
 ## Docs
 
+- `docs/counterparties.md` — what the allowlist is and how to generate it from your own mail
 - `docs/gmail-setup.md` — Google Cloud, OAuth consent, Pub/Sub push
 - `docs/outlook-setup.md` — Azure AD app registration
 - `docs/key-rotation.md` — rotating `TOKEN_ENCRYPTION_KEY` without reconnecting mailboxes
