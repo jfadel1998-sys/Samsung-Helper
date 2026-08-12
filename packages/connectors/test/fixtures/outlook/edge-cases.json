@@ -1,0 +1,79 @@
+{
+  "value": [
+    {
+      "id": "NO-SUBJECT",
+      "conversationId": "conv-edge-1",
+      "subject": "",
+      "body": { "contentType": "text", "content": "Vessel changed. Genoa now Aug 22." },
+      "from": { "emailAddress": { "address": "ops@example-forwarder.com" } },
+      "toRecipients": [{ "emailAddress": { "address": "jason@traxtone.com" } }],
+      "receivedDateTime": "2026-08-09T11:00:00Z",
+      "isDraft": false,
+      "internetMessageHeaders": []
+    },
+    {
+      "id": "HTML-ONLY-MULTIPART",
+      "conversationId": "conv-edge-2",
+      "subject": "Container 2269.2 - customs docs",
+      "body": {
+        "contentType": "html",
+        "content": "<div dir=\"ltr\"><table><tr><td>Container</td><td>MSCU1234567</td></tr><tr><td>ETA</td><td>Aug 22</td></tr></table><br><img src=\"cid:logo\"><a href=\"https://tracking.example.com/x?token=secret\">Track</a></div>"
+      },
+      "from": { "emailAddress": { "name": "Customs Desk", "address": "docs@example-forwarder.com" } },
+      "toRecipients": [{ "emailAddress": { "address": "jason@traxtone.com" } }],
+      "receivedDateTime": "2026-08-09T12:00:00Z",
+      "isDraft": false
+    },
+    {
+      "id": "EMPTY-BODY-INVITE",
+      "conversationId": "conv-edge-3",
+      "subject": "Site walk - GVR tower 2",
+      "bodyPreview": "",
+      "body": { "contentType": "html", "content": "<html><body></body></html>" },
+      "from": { "emailAddress": { "name": "Calendar", "address": "noreply@calendar.google.com" } },
+      "toRecipients": [{ "emailAddress": { "address": "jason@traxtone.com" } }],
+      "receivedDateTime": "2026-08-09T13:00:00Z",
+      "isDraft": false,
+      "internetMessageHeaders": [{ "name": "Auto-Submitted", "value": "auto-generated" }]
+    },
+    {
+      "id": "NON-UTF8-NAMES",
+      "conversationId": "conv-edge-4",
+      "subject": "Génova — cambio de buque · 石材",
+      "body": { "contentType": "text", "content": "Naïve façade slabs — 12 crates. Señor Muñoz confirmó." },
+      "from": { "emailAddress": { "name": "José Muñoz", "address": "jose@example-supplier.es" } },
+      "toRecipients": [{ "emailAddress": { "address": "jason@traxtone.com" } }],
+      "receivedDateTime": "2026-08-09T14:00:00Z",
+      "isDraft": false
+    },
+    {
+      "id": "NO-SENDER",
+      "conversationId": "conv-edge-5",
+      "subject": "system notice",
+      "body": { "contentType": "text", "content": "delivery status notification" },
+      "toRecipients": [],
+      "receivedDateTime": "2026-08-09T15:00:00Z",
+      "isDraft": false
+    },
+    {
+      "id": "BAD-DATE",
+      "conversationId": "conv-edge-6",
+      "subject": "malformed timestamp",
+      "body": { "contentType": "text", "content": "body" },
+      "from": { "emailAddress": { "address": "someone@example.com" } },
+      "receivedDateTime": "not-a-date",
+      "sentDateTime": "2026-08-09T16:00:00Z",
+      "isDraft": false
+    },
+    {
+      "id": "OWNER-SENT",
+      "conversationId": "conv-edge-1",
+      "subject": "RE: vessel change",
+      "body": { "contentType": "text", "content": "Confirming receipt, will advise on the crane window." },
+      "from": { "emailAddress": { "name": "Jason", "address": "JASON@traxtone.com" } },
+      "toRecipients": [{ "emailAddress": { "address": "ops@example-forwarder.com" } }],
+      "receivedDateTime": "2026-08-09T17:00:00Z",
+      "isDraft": false
+    }
+  ]
+}

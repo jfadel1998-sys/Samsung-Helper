@@ -55,6 +55,19 @@ export async function recordSyncFailure(db: Db, accountId: string, error: string
     .where(eq(syncState.accountId, accountId));
 }
 
+/** Resolves a provider webhook notification back to an account. */
+export async function findBySubscriptionId(
+  db: Db,
+  subscriptionId: string,
+): Promise<SyncStateRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(syncState)
+    .where(eq(syncState.subscriptionId, subscriptionId))
+    .limit(1);
+  return row;
+}
+
 /**
  * Subscriptions expiring inside `withinHours` (§2.2 — the renewal job runs
  * every 6h and renews anything inside 24h).

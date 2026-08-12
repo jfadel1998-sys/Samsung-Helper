@@ -1,0 +1,71 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(message)",
+  "@odata.deltaLink": "https://graph.microsoft.com/v1.0/me/mailFolders('inbox')/messages/delta?$deltatoken=ABC123",
+  "value": [
+    {
+      "id": "AAMkAGI2THVSAAA=",
+      "conversationId": "AAQkAGI2conv1",
+      "subject": "2269.2 GVR Local Stone - revised pricing",
+      "bodyPreview": "Jason, revised pricing attached for 12 line items.",
+      "body": {
+        "contentType": "html",
+        "content": "<html><head><style>p{margin:0}</style></head><body><p>Jason,</p><p>Revised pricing attached for the 12 line items we discussed. FOB Carrara, ex-works pricing unchanged.</p><p>Lead time is now 6-8 weeks from PO.</p><blockquote><p>On Mon, Aug 3 2026, Jason wrote:</p><p>Can you confirm the pricing on the 12 items?</p></blockquote><p>--</p><p>T. Nickolas<br>Export Sales</p></body></html>"
+      },
+      "from": {
+        "emailAddress": { "name": "T. Nickolas", "address": "t.nickolas@example-supplier.com" }
+      },
+      "sender": {
+        "emailAddress": { "name": "T. Nickolas", "address": "t.nickolas@example-supplier.com" }
+      },
+      "toRecipients": [
+        { "emailAddress": { "name": "Jason", "address": "Jason@Traxtone.com" } }
+      ],
+      "ccRecipients": [
+        { "emailAddress": { "name": "Moet", "address": "moet@traxtone.com" } }
+      ],
+      "receivedDateTime": "2026-08-10T16:42:11Z",
+      "sentDateTime": "2026-08-10T16:42:05Z",
+      "webLink": "https://outlook.office365.com/owa/?ItemID=AAMkAGI2THVSAAA%3D",
+      "isDraft": false,
+      "internetMessageHeaders": [
+        { "name": "Return-Path", "value": "<t.nickolas@example-supplier.com>" },
+        { "name": "Content-Type", "value": "multipart/alternative" }
+      ]
+    },
+    {
+      "id": "AAMkAGI2NEWSLETTER=",
+      "conversationId": "AAQkAGI2conv2",
+      "subject": "Stone World Weekly: 8 trends in porcelain slabs",
+      "bodyPreview": "This week in stone...",
+      "body": {
+        "contentType": "html",
+        "content": "<html><body><h1>Stone World Weekly</h1><p>This week in stone surfaces...</p></body></html>"
+      },
+      "from": {
+        "emailAddress": { "name": "Stone World", "address": "newsletter@stoneworld-example.com" }
+      },
+      "toRecipients": [
+        { "emailAddress": { "name": "Jason", "address": "jason@traxtone.com" } }
+      ],
+      "ccRecipients": [],
+      "receivedDateTime": "2026-08-10T09:00:00Z",
+      "webLink": "https://outlook.office365.com/owa/?ItemID=NEWS",
+      "isDraft": false,
+      "internetMessageHeaders": [
+        { "name": "List-Unsubscribe", "value": "<https://stoneworld-example.com/u/abc>" },
+        { "name": "Precedence", "value": "bulk" }
+      ]
+    },
+    {
+      "id": "AAMkAGI2REMOVED=",
+      "@removed": { "reason": "deleted" }
+    },
+    {
+      "id": "AAMkAGI2DRAFT=",
+      "subject": "draft reply to freight forwarder",
+      "isDraft": true,
+      "body": { "contentType": "text", "content": "not sent yet" },
+      "receivedDateTime": "2026-08-10T10:00:00Z"
+    }
+  ]
+}
