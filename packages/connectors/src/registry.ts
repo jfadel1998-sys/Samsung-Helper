@@ -1,5 +1,6 @@
 import type { Connector } from './types';
 import { outlookConnector } from './outlook';
+import { gmailConnector } from './gmail';
 
 /**
  * The connector registry.
@@ -10,6 +11,7 @@ import { outlookConnector } from './outlook';
  */
 const REGISTRY = new Map<string, Connector>([
   [outlookConnector.provider, outlookConnector],
+  [gmailConnector.provider, gmailConnector],
 ]);
 
 export function getConnector(provider: string): Connector {

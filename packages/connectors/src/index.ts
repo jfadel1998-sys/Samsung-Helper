@@ -11,3 +11,11 @@ export {
   type GraphNotification,
 } from './outlook/webhook';
 export { normalizeOutlook, type GraphMessage } from './outlook/normalize';
+export { gmailConnector } from './gmail';
+export {
+  decodePushEnvelope,
+  verifyPubSubJwt,
+  GMAIL_WATCH_MAX_DAYS,
+  type GmailPushPayload,
+} from './gmail/webhook';
+export { normalizeGmail, splitAddressList, type GmailMessage } from './gmail/normalize';

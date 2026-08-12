@@ -1,0 +1,107 @@
+[
+  {
+    "id": "18f2a1b3c4d5e6f7",
+    "threadId": "18f2a1b3c4d5e600",
+    "labelIds": ["INBOX", "IMPORTANT", "UNREAD"],
+    "snippet": "Moet - still need the FOB clarification before we can release the PO.",
+    "internalDate": "1786120931000",
+    "payload": {
+      "partId": "",
+      "mimeType": "multipart/alternative",
+      "filename": "",
+      "headers": [
+        { "name": "Delivered-To", "value": "jason@traxtone.com" },
+        { "name": "From", "value": "\"Rossi, Marco\" <m.rossi@example-supplier.it>" },
+        { "name": "To", "value": "\"Fadel, Jason\" <jason@traxtone.com>, moet@traxtone.com" },
+        { "name": "Cc", "value": "Logistics <ops@example-forwarder.com>" },
+        { "name": "Subject", "value": "2269.2 GVR - FOB clarification needed" },
+        { "name": "Date", "value": "Wed, 5 Aug 2026 09:00:00 +0200" },
+        { "name": "Message-ID", "value": "<abc123@example-supplier.it>" }
+      ],
+      "body": { "size": 0 },
+      "parts": [
+        {
+          "partId": "0",
+          "mimeType": "text/plain",
+          "filename": "",
+          "headers": [{ "name": "Content-Type", "value": "text/plain; charset=UTF-8" }],
+          "body": {
+            "size": 210,
+            "data": "TW9ldCwKCldlIHN0aWxsIG5lZWQgdGhlIEZPQiBjbGFyaWZpY2F0aW9uIGJlZm9yZSB3ZSBjYW4gcmVsZWFzZSB0aGUgUE8gZm9yIDIyNjkuMi4gVGhlIHF1b3RlIHNheXMgRk9CIExpdm9ybm8gYnV0IHRoZSBwcm9mb3JtYSBzYXlzIGV4LXdvcmtzIENhcnJhcmEuCgpXaGljaCBpcyBjb3JyZWN0Pwo"
+          }
+        },
+        {
+          "partId": "1",
+          "mimeType": "text/html",
+          "filename": "",
+          "body": {
+            "size": 300,
+            "data": "PGRpdj48cD5Nb2V0LDwvcD48cD5XZSBzdGlsbCBuZWVkIHRoZSBGT0IgY2xhcmlmaWNhdGlvbi48L3A-PC9kaXY-"
+          }
+        },
+        {
+          "partId": "2",
+          "mimeType": "application/pdf",
+          "filename": "proforma-2269.2.pdf",
+          "body": { "size": 88213, "attachmentId": "ANGjdJ_attach_1" }
+        }
+      ]
+    }
+  },
+  {
+    "id": "18f2promo0001",
+    "threadId": "18f2promo0001",
+    "labelIds": ["INBOX", "CATEGORY_PROMOTIONS"],
+    "snippet": "50% off surface care products this week",
+    "internalDate": "1786034531000",
+    "payload": {
+      "mimeType": "text/html",
+      "headers": [
+        { "name": "From", "value": "Deals <deals@surfacecare-example.com>" },
+        { "name": "To", "value": "jason@traxtone.com" },
+        { "name": "Subject", "value": "50% off surface care products" },
+        { "name": "List-Unsubscribe", "value": "<https://surfacecare-example.com/u/9>" },
+        { "name": "Precedence", "value": "bulk" }
+      ],
+      "body": {
+        "size": 90,
+        "data": "PGh0bWw-PGJvZHk-PGgxPjUwJSBvZmY8L2gxPjxwPlNob3Agbm93PC9wPjwvYm9keT48L2h0bWw-"
+      }
+    }
+  },
+  {
+    "id": "18f2ooo0001",
+    "threadId": "18f2a1b3c4d5e600",
+    "labelIds": ["INBOX"],
+    "snippet": "I am out of the office until Aug 20",
+    "internalDate": "1786121931000",
+    "payload": {
+      "mimeType": "text/plain",
+      "headers": [
+        { "name": "From", "value": "moet@traxtone.com" },
+        { "name": "To", "value": "jason@traxtone.com" },
+        { "name": "Subject", "value": "Automatic reply: 2269.2 GVR" },
+        { "name": "Auto-Submitted", "value": "auto-replied" }
+      ],
+      "body": {
+        "size": 40,
+        "data": "SSBhbSBvdXQgb2YgdGhlIG9mZmljZSB1bnRpbCBBdWcgMjAu"
+      }
+    }
+  },
+  {
+    "id": "18f2draft0001",
+    "threadId": "18f2draft0001",
+    "labelIds": ["DRAFT"],
+    "internalDate": "1786121000000",
+    "payload": {
+      "mimeType": "text/plain",
+      "headers": [{ "name": "Subject", "value": "unsent" }],
+      "body": { "size": 5, "data": "ZHJhZnQ" }
+    }
+  },
+  {
+    "id": "18f2stub0001",
+    "threadId": "18f2stub0001"
+  }
+]
