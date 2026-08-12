@@ -2,7 +2,7 @@
  * §7.3 grouping. Deterministic and done in code, so the model's only job is
  * writing prose — it never decides what belongs where or what is urgent.
  */
-import type { StoredExtraction } from '@hub/extraction';
+import { compareJobNumbers, normalizeJobNumber, type StoredExtraction } from '@hub/extraction';
 import type { ThreadWaitRow } from './days-open';
 
 export const URGENCY_ORDER = ['critical', 'high', 'normal', 'low'] as const;
@@ -74,7 +74,9 @@ export function groupForBrief(items: BriefItem[]): GroupedBrief {
   for (const item of items) {
     if (alreadyShown.has(item.eventId)) continue;
 
-    const job = item.extraction.job_number;
+    // Normalize again at grouping time: rows written before normalization
+    // existed, or by a future connector, still have to group correctly.
+    const job = normalizeJobNumber(item.extraction.job_number);
     if (job) {
       const group = jobs.get(job) ?? {
         jobNumber: job,
@@ -102,9 +104,10 @@ export function groupForBrief(items: BriefItem[]): GroupedBrief {
     .map((g) => ({ ...g, items: g.items.sort(byUrgencyThenAge) }))
     .sort((a, b) => {
       // Most urgent job first; ties broken by job number so ordering is stable
-      // across runs on the same data.
+      // across runs on the same data. Numeric, not lexical — otherwise "3310"
+      // sorts before "12345" and the list reads as unordered.
       const u = urgencyRank(a.items[0]!) - urgencyRank(b.items[0]!);
-      return u !== 0 ? u : a.jobNumber.localeCompare(b.jobNumber);
+      return u !== 0 ? u : compareJobNumbers(a.jobNumber, b.jobNumber);
     });
 
   // Counterparty groups have no section of their own in §7.3; they are the

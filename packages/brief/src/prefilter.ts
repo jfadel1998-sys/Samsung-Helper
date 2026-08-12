@@ -28,6 +28,7 @@ import {
   domainOf,
   type CounterpartyConfig,
 } from '@hub/config';
+import { findJobNumbers } from '@hub/extraction';
 
 export type PrefilterVerdict = 'keep' | 'newsletter' | 'notification' | 'bulk';
 
@@ -65,15 +66,7 @@ export interface PrefilterResult {
   reason: string;
 }
 
-/**
- * §7.1 job-number pattern: four digits, optional decimal suffix (`2269.2`).
- *
- * On its own this also matches years, dollar amounts, and zip codes, which is
- * why a match only counts when a stone or project keyword sits nearby.
- */
-export const JOB_NUMBER_RE = /\b\d{4}(\.\d+)?\b/g;
-
-/** How close a keyword must be to a job number to count as a real reference. */
+/** How close a keyword must be to a bare job number to count as a real reference. */
 const KEYWORD_PROXIMITY_CHARS = 120;
 
 const GMAIL_DEMOTED_CATEGORIES = new Set([
@@ -120,33 +113,36 @@ export function looksLikeJobReference(
   const keywords = keywordRegex(cfg);
   if (!keywords) return false;
 
-  // A subject line is short enough that any keyword in it is "near" any number
-  // in it, so the whole subject is treated as one proximity window.
-  const subjectText = (subject ?? '').toLowerCase();
-  if (subjectText && hasJobNumber(subjectText) && keywords.test(subjectText)) {
-    return true;
+  for (const [text, isSubject] of [
+    [(subject ?? '').toLowerCase(), true],
+    [(body ?? '').toLowerCase(), false],
+  ] as Array<[string, boolean]>) {
+    if (!text) continue;
+
+    for (const match of findJobNumbers(text)) {
+      // An explicit marker ("job 2269.2", "#2269.2") is unambiguous on its own.
+      if (match.confidence === 'marked') return true;
+
+      // A bare number needs supporting vocabulary. A subject line is short
+      // enough that any keyword in it counts as nearby; in a body the keyword
+      // has to sit within the proximity window.
+      const window = isSubject
+        ? text
+        : text.slice(
+            Math.max(0, match.index - KEYWORD_PROXIMITY_CHARS),
+            match.index + match.raw.length + KEYWORD_PROXIMITY_CHARS,
+          );
+      if (keywords.test(window)) return true;
+    }
   }
 
-  const bodyText = (body ?? '').toLowerCase();
-  if (!bodyText) return false;
-
-  for (const match of bodyText.matchAll(JOB_NUMBER_RE)) {
-    const at = match.index ?? 0;
-    const window = bodyText.slice(
-      Math.max(0, at - KEYWORD_PROXIMITY_CHARS),
-      at + match[0].length + KEYWORD_PROXIMITY_CHARS,
-    );
-    if (keywords.test(window)) return true;
-  }
   return false;
 }
 
-/** Non-stateful membership test — JOB_NUMBER_RE is global, so `.test` would advance it. */
-function hasJobNumber(text: string): boolean {
-  JOB_NUMBER_RE.lastIndex = 0;
-  const found = JOB_NUMBER_RE.test(text);
-  JOB_NUMBER_RE.lastIndex = 0;
-  return found;
+/** Canonical job numbers referenced anywhere in a message. */
+export function jobNumbersIn(subject: string | null, body: string | null): string[] {
+  const found = [...findJobNumbers(subject ?? ''), ...findJobNumbers(body ?? '')];
+  return [...new Set(found.map((m) => m.value))];
 }
 
 function isNotificationSender(address: string | null, cfg: CounterpartyConfig): boolean {

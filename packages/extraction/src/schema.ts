@@ -6,6 +6,7 @@
  * helper cannot convert.
  */
 import * as z from 'zod/v4';
+import { normalizeJobNumber } from './job-number';
 
 export const COUNTERPARTY_TYPES = [
   'supplier',
@@ -74,7 +75,17 @@ export interface StoredExtraction extends Omit<ExtractedEvent, 'ref'> {
   external_id: string;
 }
 
+/**
+ * Normalizes on the way to storage so the grouping key is always canonical,
+ * whatever form the source email used and whatever the model echoed back.
+ * "2269-2", "#2269.2", and "Job 2269.02" all store as "2269.2" and therefore
+ * land in one block in the brief.
+ */
 export function toStored(event: ExtractedEvent, externalId: string): StoredExtraction {
   const { ref: _ref, ...rest } = event;
-  return { ...rest, external_id: externalId };
+  return {
+    ...rest,
+    job_number: normalizeJobNumber(rest.job_number),
+    external_id: externalId,
+  };
 }

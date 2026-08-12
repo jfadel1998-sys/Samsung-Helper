@@ -13,7 +13,7 @@ Extract only what a message literally states. When a field is not stated, return
 
 Field guidance:
 
-- job_number: the project's job number, usually four digits with an optional decimal ("2269.2"). Only if it appears in the message. Do not derive it from an address, a date, a quantity, a price, or an invoice number.
+- job_number: the project's job number. Write it as four digits, optionally followed by a dot and the sub-job: "2269" or "2269.2". Messages write it inconsistently — "2269-2", "#2269.2", "Job 2269_2", "PROJECT 2269.02" are all the same job — so return the canonical "2269.2" form regardless of how it was written. Only if it appears in the message. Do not derive it from an address, a date, a quantity, a price, an invoice number, or a container number.
 - project_name: the project as named in the message ("GVR Local Stone"). Null if unnamed.
 - counterparty: the organization or person the message is with — not the owner's own firm.
 - counterparty_type: what that counterparty is to this project. Use "unknown" when the message gives no basis to choose.
